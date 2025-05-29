@@ -209,20 +209,13 @@ function test_os_pipe() {
     
     var fds, fr, fw, ab;
     fds = os.pipe();
-//    console.log("got: " + fds[0] + " " + fds[1]);
     fw = std.fdopen(fds[1], "w");
     fr = std.fdopen(fds[0], "r");
     const tstr = "this is a test\r";
     fw.puts(tstr + "\n");
-//    fw.puts("this is slow!\r\n");
     fw.puts("\r\n");
     fw.flush();
-//    fw.close();
     var barray = new Uint8Array(64);
-//    ab = fr.read(barray.buffer, 0, 64);
-//    console.log(ab);
-//    console.log(fr.getline());
-//    console.log(fr.getline());
     ab = fr.getline();
     assert(ab.length, tstr.length);
     fw.close();
