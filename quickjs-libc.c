@@ -3581,29 +3581,27 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
     }
         
     cmdi = 0; int cmdsl;
+    /* uncomment this to put cwd into the cmdline
     if (cwd) {
         cmdsl = strlen(cwd);
         if (cmdsl) {
             strncpy(&cmdbuff[cmdi], cwd, cmdsl);
             cmdi += cmdsl;
+            if (cmdbuff[cmdi - 1] != '\\') {
+                cmdbuff[cmdi] = '\\';
+                cmdi++;
+            };
         };
     };
-    if (file) {
-        cmdsl = strlen(file);
-        if (cmdsl) {
-            strncpy(&cmdbuff[cmdi], file, cmdsl);
-            cmdi += cmdsl;
-            cmdbuff[cmdi] = '"';
-            cmdi++;
-        };
-#define WIN32_OS_EXEC_OPTION1
-#define WIN32_OS_EXEC_WATCHING
-// still playing with cwd + file combinations
-#ifdef WIN32_OS_EXEC_OPTION1
+    */
+    if (file)  cmdsl = strlen(file);
+    else cmdsl = 0;
+    if (cmdsl) {
+        strncpy(&cmdbuff[cmdi], file, cmdsl);
+        cmdi += cmdsl;
     }  else {
-        strncpy(&cmdbuff[cmdi], "cmd.exe /c \"", 12);
-        cmdi += 12;
-#endif
+        strncpy(&cmdbuff[cmdi], "cmd /C ", 7); 
+        cmdi += 7;
     };
 
    val = JS_GetPropertyStr(ctx, args, "length");
@@ -3624,32 +3622,23 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
         if (!str)  goto exception;
         cmdsl = strlen(str);
         if (cmdsl) {
-#ifdef WIN32_OS_EXEC_OPTION1
-            if ((file) || (i != 0)) {
-#else
-            if (true) {
-#endif
-                if (OS_EXEC_CMD_BUFFSIZE < (cmdi + cmdsl)) {
-                    JS_ThrowRangeError(ctx, "exec command line too long.");
-                    goto exception;
-                };
+            if ((i != 0) || (file != 0)) {
                 cmdbuff[cmdi] = ' ';
                 cmdi++;
             };
+            if (OS_EXEC_CMD_BUFFSIZE < (cmdi + cmdsl + 1)) {
+                JS_ThrowRangeError(ctx, "exec command line too long.");
+                goto exception;
+            };
             strncpy(&cmdbuff[cmdi], str, cmdsl);
             cmdi += cmdsl;
-        };
-        
+        };   
     }
-    cmdbuff[cmdi] = '"';
-    cmdi++;
     cmdbuff[cmdi] = 0;
 #ifdef WIN32_OS_EXEC_WORKING
-    printf("path to exec: \"%s\"\r\n", cmdbuff);
-#endif
-#endif //_WIN32
-
-#ifdef _WIN32
+    printf("path to exec: [%s] path:[%s]\r\n", cmdbuff, cwd);
+#endif // working
+   
     STARTUPINFO istart;
     PROCESS_INFORMATION iproc;  
     // memset was absolutely necessary. I kept getting deeper system crashes
@@ -3659,7 +3648,7 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
 
       if (specified_fd) { // this is also something worth tinkering with
         istart.dwFlags = STARTF_USESTDHANDLES;
-      };
+      //};
       
         istart.hStdInput = (HANDLE) _get_osfhandle( std_fds[0] );
         if (istart.hStdInput == INVALID_HANDLE_VALUE) {
@@ -3676,6 +3665,8 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
             JS_ThrowInternalError(ctx, "failed to associate stderr of process");
             goto exception;
         };
+      // */
+    };
 /*       
       printf("using handles %" PRIx64 " from %d, %"  PRIx64 " from %d, %"  PRIx64 " from %d\r\n", 
         (int64_t) istart.hStdInput, std_fds[0], (int64_t) istart.hStdOutput, std_fds[1],
@@ -3698,7 +3689,7 @@ BOOL CreateProcessA(
 
    // seems like inherithandles and environ crash the return value if not perfect!
    // we may also need to sim a cmd.exe chdir and a manual push with a cwd .... 
-   if (!CreateProcessA(0, cmdbuff, 0, 0, true, cflags, envp, 0, &istart, &iproc) )
+   if (!CreateProcessA(file, cmdbuff, 0, 0, true, cflags, envp, cwd, &istart, &iproc) )
     {
         int e = GetLastError();
         JS_ThrowInternalError(ctx, "failed to start process with error: %d", e);
