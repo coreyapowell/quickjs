@@ -205,36 +205,18 @@ function test_os()
     assert(os.remove(fdir) === 0);
 }
 
-function test_os_pipe() {
-    
-    var fds, fr, fw, ab;
-    fds = os.pipe();
-    fw = std.fdopen(fds[1], "w");
-    fr = std.fdopen(fds[0], "r");
-    const tstr = "this is a test\r";
-    fw.puts(tstr + "\n");
-    fw.puts("\r\n");
-    fw.flush();
-    var barray = new Uint8Array(64);
-    ab = fr.getline();
-    assert(ab.length, tstr.length);
-    fw.close();
-    fr.close();
-};
-
-test_os_pipe();
-
 function test_win_os_exec() {
     var ret, fds, pid, f, status;
 
-/* functionality just isn't the same in win32!
-    in fact, in MSYS the command prompt behaves differently.
-    I did manage all of this with FDS and PIDS and not handles
-    hello/r is an artifact of the getline unix emulation
-    watchpid and kill should be made compatible on all systems.
-    my os.kill is just a terminateprocess call. it returns early.
-    watchpid is too fast for the kill to complete in VC + NT
-    at least we can monitor status of a script and execute programs.
+/*  command line functionality just isn't the same in win32!
+    in fact, in MSYS the command prompt behaves differently than CMD.
+    these functions use FDS and PIDS and not Windows Handles
+    hello/r seems to be an artifact of the getline unix emulation. c code could be tweaked
+    watchpid(pid, blocking) gives cross compatible substitute for waitpid. 
+    watchpid won't give status, there wasn't a windows equivalent without emulation.
+    win32 os.kill is just a terminateprocess call. it has no signals.
+    watchpid is too fast for the kill command to complete the first time in VC / WIN32 so I sleep
+    watchpid and kill should otherwise be compatible on all systems 
 */
     ret = os.exec(["smeegul desgpglam golum"]);
     assert(ret, 1);
