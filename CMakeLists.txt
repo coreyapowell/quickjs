@@ -90,10 +90,16 @@ endif()
 if(WIN32)
     if(MSVC)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:8388608")
-    elseif((GNU) OR (MINGW))
+    elseif(GNU)
+#just to prove a point, my CLANG64 on MSYS may have seen this line before I installed ninja
+#MSYS2 never sees this line now
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--stack,8388608")
+    elseif(MINGW)
+#after installing ninja for Clang64 it is considered MINGW. CLANG does nothing
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--stack,8388608")
     else()
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl--stack_size,8388608")
+#this option for CLANG on MSVC
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl--stack_size:8388608")
     endif()
 endif()
 
