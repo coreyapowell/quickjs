@@ -3398,7 +3398,6 @@ static void js_os_exec_once_init(void)
 
 #endif // !_WIN32  !__wasi__
 
-
 #if !defined(__wasi__)
 
 /* exec(args[, options]) -> exitcode */
@@ -3638,7 +3637,10 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
 #ifdef WIN32_OS_EXEC_WORKING
     printf("path to exec: [%s] path:[%s]\r\n", cmdbuff, cwd);
 #endif // working
-   
+
+#endif // WIN32
+
+#ifdef WIN32
     STARTUPINFO istart;
     PROCESS_INFORMATION iproc;  
     // memset was absolutely necessary. I kept getting deeper system crashes
@@ -3823,7 +3825,7 @@ BOOL CreateProcessA(
     ret_val = JS_EXCEPTION;
     goto done;
 }
-#endif
+#endif 
 
 #ifdef _WIN32    
 /* pipe() -> [read_fd, write_fd] or null if error */
