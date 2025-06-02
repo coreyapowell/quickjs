@@ -3792,6 +3792,7 @@ static JSValue js_os_kill(JSContext *ctx, JSValueConst this_val,
                           int argc, JSValueConst *argv)
 {
     int pid;
+    BOOL ret;
     HANDLE ph;
     DWORD flags = PROCESS_TERMINATE;
     if (JS_ToInt32(ctx, &pid, argv[0]))
@@ -3799,8 +3800,10 @@ static JSValue js_os_kill(JSContext *ctx, JSValueConst this_val,
     ph = OpenProcess(flags, false, (DWORD) pid); 
     if (!ph) 
         return JS_NewInt32(ctx, GetLastError());
-    if (TerminateProcess(ph, 0)) 
-        return JS_NewInt32(ctx, 0);
+    ret = TerminateProcess(ph, 0);
+    CloseHandle(ph);
+    if (ret) 
+        JS_NewInt32(ctx, 0);
     int err = GetLastError();
     return JS_NewInt32(ctx,err);
 }
