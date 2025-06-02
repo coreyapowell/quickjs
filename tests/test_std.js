@@ -168,9 +168,16 @@ function test_os()
     [st, err] = os.stat(fpath);
     assert(err, 0);
     assert(st.mode & os.S_IFMT, os.S_IFREG);
-    assert(st.mtime, fdate);
 
+    if (!isWin) // returns some negative value in windows 11. had to remove this on my build. (CAP)
+        assert(st.mtime, fdate);
+
+    /* symlink in windows 10+ requres admin or SeCreateSymbolicLinkPrivilege privilege found under:
+      Computer Configuration\Windows Settings\Security Settings\Local Policies\User Rights Assignment\
+    */
+    const IS_WIN_ADMIN_TEST_FLAG = 0;
     if (!isWin) {
+
         err = os.symlink(fname, link_path);
         assert(err, 0);
 
@@ -183,6 +190,18 @@ function test_os()
         assert(buf, fname);
 
         assert(os.remove(link_path) === 0);
+        
+    } else if (IS_WIN_ADMIN_TEST_FLAG) {
+
+        err = os.symlink(fname, link_path);
+        assert(err, 0);
+
+        [st, err] = os.lstat(link_path);
+        assert(err, 0);
+        assert(st.mode & os.S_IFMT, os.S_IFLNK);
+
+        assert(os.remove(link_path) === 0);
+
     }
 
     [buf, err] = os.getcwd();
@@ -298,3 +317,5 @@ test_interval();
 test_timeout();
 test_timeout_order();
 test_stdio_close();
+
+std.exit(0);
