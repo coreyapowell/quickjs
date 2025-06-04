@@ -13,6 +13,7 @@ function test_os_exec() {
     const osShellCmd = ( isWin ? "cmd" : "/bin/sh" );
     const osShellFlag = ( isWin ? "/c" : "-c" );
     const osPathSeparator = ( isWin ? "\\" : "/" );
+    const osStallProgram = ( isWin ? "cmd /k" : "cat" );
 
     if (!isWin) {
 
@@ -20,13 +21,32 @@ function test_os_exec() {
         assert(ret, 0);
     }
 
-    ret = os.exec( [osShellCmd, osShellFlag, "exit 2"], { usePath: false } );
-    assert(ret, 2);
+    ret = os.exec( ["exit 1"], { usePath: false } );
+    assert(ret, ( isWin ? 2 : 127 ) );
 
-    ret = os.exec( ["bad command or filename @@"],  );
+    ret = os.exec( [osShellCmd, osShellFlag, "exit 2"], { usePath: false } );
+    assert(ret, 2 );
+
+    ret = os.exec( ["echo invalid filenames leave no text"],  );
+    assert( ret, ( isWin ? 2 : 127 ) );
+
+    ret = os.exec( [osShellCmd, osShellFlag, "errors return error codes"],  );
+    assert( ret, ( isWin ? 1 : 127 ) );
+
+    ret = os.exec( [osShellCmd, osShellFlag, "bad command or filename @@"],  
+        { inherit: true }
+    );
     assert( ret, ( isWin ? 1 : 127 ) );
 
     ret = os.exec( [osShellCmd, osShellFlag, ": good commands return 0"] );
+    assert(ret, 0);
+
+    ret = os.exec( [osShellCmd, osShellFlag, "echo stdio not inherited by default"] );
+    assert(ret, 0);
+
+    ret = os.exec( [osShellCmd, osShellFlag, "echo inherited shell text comes through"],
+        { inherit: true }
+     );
     assert(ret, 0);
 
     pid = os.exec( [osShellCmd, osShellFlag, ":"], { block: false} );
@@ -34,9 +54,9 @@ function test_os_exec() {
         watchpid(p,0) == waitpid(p, WNOHANG), watchpid(p,1) == waitpid(p,0) */
     ret = os.watchpid(pid, 1);
     assert(ret, pid);
-
-    const osShellEchoParam =  ( isWin ? 'echo %FOO%' : 'echo $FOO' );
+    
     fds = os.pipe();
+    const osShellEchoParam =  ( isWin ? 'echo %FOO%' : 'echo $FOO' );
     pid = os.exec( [osShellCmd, osShellFlag, osShellEchoParam ], {
         stdout: fds[1],
         block: false,
@@ -55,7 +75,7 @@ function test_os_exec() {
         assert(status >> 8, 0); /* exit code */ 
     }
 
-    pid = os.exec(["cat"], { block: false } );
+    pid = os.exec([osStallProgram], { block: false } );
     assert(pid >= 0);
     ret = os.watchpid(pid, 0);
     assert(ret, 0);
@@ -66,7 +86,7 @@ function test_os_exec() {
     assert(ret, pid); 
 
     if (!isWin) {
-        pid = os.exec(["cat"], { block: false } );
+        pid = os.exec([osStallProgram], { block: false } );
         assert(pid >= 0);
         [ret, status] = os.waitpid(pid, os.WNOHANG);
         assert(ret, 0);
